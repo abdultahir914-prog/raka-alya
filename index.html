@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111111">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Raka × Alya">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<title>Raka & Alya — Bilingual Prompt Library</title>
+<style>
+:root{--bg:#f5f5f5;--card:#fff;--text:#171717;--muted:#666;--border:#ddd;--accent:#111;--soft:#f7f7f7}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+header{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.97);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:18px 20px}
+.wrap{max-width:1250px;margin:auto}
+h1{margin:0 0 5px;font-size:24px} .sub{color:var(--muted);font-size:14px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
+input,select,textarea{font:inherit;border:1px solid var(--border);border-radius:10px;padding:10px;background:#fff}
+#search{flex:1;min-width:220px}
+button{font:inherit;border:0;border-radius:10px;padding:9px 12px;background:var(--accent);color:#fff;cursor:pointer}
+button.secondary{background:#eee;color:#111}
+main{padding:24px 20px 60px}
+.grid{display:grid;grid-template-columns:1fr;gap:18px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+.category{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+h2{font-size:18px;margin:7px 0}
+.tags{font-size:12px;color:var(--muted);margin-bottom:14px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.lang{border:1px solid var(--border);border-radius:12px;overflow:hidden;min-width:0}
+.langhead{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--soft);border-bottom:1px solid var(--border);font-weight:700;font-size:13px}
+pre{white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.55;margin:0;padding:13px;min-height:190px;max-height:420px;overflow:auto}
+.card-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.card-actions button{flex:1;min-width:120px}
+.empty{text-align:center;color:var(--muted);padding:40px}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;padding:20px;overflow:auto}
+.modal.open{display:block}
+.panel{max-width:900px;margin:4vh auto;background:#fff;border-radius:18px;padding:20px}
+.panel h2{font-size:20px}
+label{display:block;font-size:13px;font-weight:700;margin:12px 0 6px}
+textarea{width:100%;min-height:220px;resize:vertical}
+.note{font-size:12px;color:var(--muted);margin-top:8px}
+@media(max-width:760px){.cols{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<div class="wrap">
+<h1>RAKA × ALYA — Bilingual Prompt Library</h1>
+<div class="sub">Prompt English + terjemahan Indonesia berdampingan • copy sekali klik • bisa tambah prompt baru</div>
+<div class="toolbar">
+<input id="search" placeholder="Cari prompt, kategori, atau kata kunci…">
+<select id="category"><option value="">Semua kategori</option></select>
+<button onclick="openAdd()">＋ Tambah Prompt</button>
+<button class="secondary" onclick="exportData()">Backup</button>
+<button class="secondary" onclick="importData()">Restore</button>
+<button class="secondary" id="installBtn" style="display:none" onclick="installApp()">📲 Install App</button>
+<div id="fileNote" style="display:none;margin-top:12px;padding:10px 12px;border:1px solid #ddd;border-radius:10px;background:#f7f7f7;font-size:12px;color:#555">Tip HP Android: setelah download, buka file ini dari <b>Files/Download</b>, bukan dari tab/riwayat download lama. Jika Chrome menampilkan ERR_FILE_NOT_FOUND, download ulang file ini lalu buka salinan terbaru.</div>
+</div>
+</div>
+</header>
+<main><div class="wrap"><div id="stats" class="sub" style="margin-bottom:14px"></div><div id="grid" class="grid"></div></div></main>
+
+<div id="modal" class="modal">
+<div class="panel">
+<h2 id="modalTitle">Tambah Prompt</h2>
+<label>Judul</label><input id="pTitle" style="width:100%" placeholder="Contoh: Review Produk — Blender">
+<label>Kategori</label><input id="pCategory" style="width:100%" placeholder="Contoh: 04 — Content Prompts">
+<label>Tags</label><input id="pTags" style="width:100%" placeholder="review, blender, affiliate">
+<label>Prompt Bahasa Inggris</label><textarea id="pText" placeholder="Tulis prompt bahasa Inggris di sini..."></textarea>
+<label>Terjemahan Bahasa Indonesia</label><textarea id="pIndo" placeholder="Tulis terjemahan bahasa Indonesia di sini..."></textarea>
+<div class="card-actions"><button class="secondary" onclick="closeModal()">Batal</button><button onclick="savePrompt()">Simpan</button></div>
+<div class="note">Prompt tambahan disimpan di browser perangkat ini menggunakan localStorage. Untuk menjaga data saat pindah perangkat, gunakan Backup lalu Restore.</div>
+</div>
+</div>
+
+<script>
+const base = [{"category": "01 — Master Character", "title": "Master Prompt — Raka & Alya", "tags": "master character branding visual identity", "text": "Create two recurring Indonesian affiliate marketing characters named Raka and Alya.\n\nRaka:\nA young Indonesian man around 27–30 years old, short neat black hair, approachable masculine appearance, friendly confident expression, natural realistic Indonesian facial features, casual black polo shirt with subtle gray collar and sleeve details. He has a practical, trustworthy and relaxed personality.\n\nAlya:\nA young Indonesian woman around 25–29 years old, wearing a modest patterned hijab with black, white and gray tones, elegant black long-sleeve outfit, warm friendly smile, natural realistic Indonesian facial features, soft natural makeup. She has a friendly, detail-oriented and approachable personality.\n\nThey are a recurring duo for an Indonesian social-media affiliate brand.\n\nRaka is the practical product tester and problem solver.\nAlya is the product explainer and lifestyle reviewer.\n\nTheir relationship feels natural, comfortable and friendly, like two close partners who regularly create content together.\n\nIMPORTANT CHARACTER CONSISTENCY:\nKeep Raka and Alya visually identical across all future images. Preserve their facial structure, hairstyle, apparent age, skin tone, body proportions, clothing aesthetic and overall visual identity. Do not randomly change their appearance.\n\nVisual style:\nphotorealistic commercial lifestyle photography, authentic Indonesian appearance, realistic skin texture, natural facial details, natural body proportions, soft cinematic lighting, realistic shadows, high-end social media advertising photography, warm approachable atmosphere, subtle depth of field.\n\nBrand personality:\ntrustworthy, relatable, friendly, practical, modern, authentic and helpful.\n\nAvoid:\noverly glamorous fashion-model appearance, excessive makeup, exaggerated expressions, plastic skin, cartoon style, distorted hands, extra fingers, unnatural anatomy, inconsistent faces, random clothing changes.\n\nVertical 9:16 composition, optimized for TikTok, Instagram Reels and short-form affiliate content.", "indonesian": "Buat dua karakter affiliate marketing Indonesia yang muncul secara konsisten bernama Raka dan Alya.\n\nRaka:\nPria Indonesia muda sekitar 27–30 tahun, rambut hitam pendek rapi, penampilan maskulin yang ramah, ekspresi percaya diri dan bersahabat, fitur wajah Indonesia yang natural dan realistis, mengenakan polo shirt hitam kasual dengan detail kerah dan lengan abu-abu yang halus. Kepribadiannya praktis, dapat dipercaya, dan santai.\n\nAlya:\nWanita Indonesia muda sekitar 25–29 tahun, mengenakan hijab bermotif modest dengan nuansa hitam, putih, dan abu-abu, outfit lengan panjang hitam yang elegan, senyum hangat dan ramah, fitur wajah Indonesia yang natural dan realistis, makeup natural yang lembut. Kepribadiannya ramah, teliti, dan mudah didekati.\n\nMereka adalah duo yang terus muncul untuk brand affiliate media sosial Indonesia.\n\nRaka berperan sebagai penguji produk dan pemecah masalah praktis.\nAlya berperan sebagai penjelas produk dan reviewer gaya hidup.\n\nHubungan mereka terasa natural, nyaman, dan bersahabat, seperti dua partner dekat yang rutin membuat konten bersama.\n\nKONSISTENSI KARAKTER — PENTING:\nPertahankan tampilan Raka dan Alya tetap sama di semua gambar berikutnya. Pertahankan struktur wajah, gaya rambut, perkiraan usia, warna kulit, proporsi tubuh, gaya pakaian, dan identitas visual secara keseluruhan. Jangan mengubah penampilan mereka secara acak.\n\nGaya visual:\nfotografi lifestyle komersial fotorealistik, penampilan Indonesia yang autentik, tekstur kulit realistis, detail wajah natural, proporsi tubuh natural, pencahayaan sinematik lembut, bayangan realistis, fotografi iklan media sosial berkualitas tinggi, suasana hangat dan ramah, depth of field halus.\n\nKepribadian brand:\ndapat dipercaya, relatable, ramah, praktis, modern, autentik, dan membantu.\n\nHindari:\npenampilan seperti model fashion yang terlalu glamor, makeup berlebihan, ekspresi berlebihan, kulit seperti plastik, gaya kartun, tangan terdistorsi, jari tambahan, anatomi tidak natural, wajah yang tidak konsisten, dan perubahan pakaian secara acak.\n\nKomposisi vertikal 9:16, dioptimalkan untuk TikTok, Instagram Reels, dan konten affiliate format pendek."}, {"category": "02 — Character Identity", "title": "Raka — Character Profile", "tags": "raka character personality", "text": "Raka — Si Tukang Coba\n\nUmur visual: 27–30 tahun\nPenampilan: pria Indonesia, rambut hitam pendek rapi\nOutfit khas: polo shirt hitam dengan detail abu-abu\nKepribadian: praktis, santai, rasional, suka mencoba produk\nPeran: tester & problem solver\nGaya komunikasi: “Gue coba dulu, kalau memang bagus baru gue rekomendasiin.”\nEkspresi khas: senyum tipis, penasaran, sedikit terkejut ketika menemukan fitur bagus.\n\nSignature lines:\n“Gue kira ini gimmick doang...”\n“Oke, kita coba dulu.”\n“Nah, ternyata bagian ini yang bikin gue suka.”\n“Kalau menurut gue, ini kepakai banget.”", "indonesian": "Raka — Si Tukang Coba\n\nUmur visual: 27–30 tahun\nPenampilan: pria Indonesia, rambut hitam pendek rapi\nOutfit khas: polo shirt hitam dengan detail abu-abu\nKepribadian: praktis, santai, rasional, suka mencoba produk\nPeran: penguji produk & pemecah masalah\nGaya komunikasi: “Gue coba dulu, kalau memang bagus baru gue rekomendasiin.”\nEkspresi khas: senyum tipis, penasaran, sedikit terkejut ketika menemukan fitur bagus.\n\nKalimat khas:\n“Gue kira ini gimmick doang...”\n“Oke, kita coba dulu.”\n“Nah, ternyata bagian ini yang bikin gue suka.”\n“Kalau menurut gue, ini kepakai banget.”"}, {"category": "02 — Character Identity", "title": "Alya — Character Profile", "tags": "alya character personality", "text": "Alya — Si Paling Detail\n\nUmur visual: 25–29 tahun\nPenampilan: wanita Indonesia berhijab dengan gaya modest\nOutfit khas: hijab bermotif hitam-putih/abu dan pakaian hitam elegan\nKepribadian: ramah, detail-oriented, komunikatif\nPeran: product explainer & lifestyle reviewer\nGaya komunikasi: “Ini tuh ternyata kepakai banget buat sehari-hari.”\nEkspresi khas: senyum hangat, excited, ekspresi “ini bagus banget”.\n\nSignature lines:\n“Eh, ternyata ada fitur ini.”\n“Ini yang menurut aku menarik.”\n“Kalau buat sehari-hari, menurutku ini kepakai.”\n“Coba lihat bagian ini.”", "indonesian": "Alya — Si Paling Detail\n\nUmur visual: 25–29 tahun\nPenampilan: wanita Indonesia berhijab dengan gaya modest\nOutfit khas: hijab bermotif hitam-putih/abu dan pakaian hitam elegan\nKepribadian: ramah, teliti, komunikatif\nPeran: penjelas produk & reviewer gaya hidup\nGaya komunikasi: “Ini tuh ternyata kepakai banget buat sehari-hari.”\nEkspresi khas: senyum hangat, antusias, ekspresi “ini bagus banget”.\n\nKalimat khas:\n“Eh, ternyata ada fitur ini.”\n“Ini yang menurut aku menarik.”\n“Kalau buat sehari-hari, menurutku ini kepakai.”\n“Coba lihat bagian ini.”"}, {"category": "03 — Brand", "title": "Brand Identity — RAKA × ALYA", "tags": "brand identity tagline positioning", "text": "Nama brand: RAKA & ALYA\n\nTagline utama:\n“Coba Dulu, Baru Rekomendasi.”\n\nPositioning:\nDuo reviewer affiliate yang membantu orang menemukan produk yang benar-benar berguna untuk kehidupan sehari-hari.\n\nKarakter brand:\nFriendly, penasaran, praktis, relatable, modern, santai, membantu.\n\nKonsep:\nDua karakter mencoba berbagai produk sehari-hari, lalu memberikan rekomendasi dengan gaya santai dan relatable.\n\nDinamika:\nJangan dibuat seperti presenter TV. Buat seperti dua orang yang sedang ngobrol sambil menemukan produk menarik.\n\nContoh:\nRaka: “Emang sebagus itu?”\nAlya: “Coba dulu.”\nRaka: “Oh... ternyata.”\nAlya: “Nah kan.”", "indonesian": "Nama brand: RAKA & ALYA\n\nTagline utama:\n“Coba Dulu, Baru Rekomendasi.”\n\nPositioning:\nDuo reviewer affiliate yang membantu orang menemukan produk yang benar-benar berguna untuk kehidupan sehari-hari.\n\nKarakter brand:\nRamah, penasaran, praktis, relatable, modern, santai, dan membantu.\n\nKonsep:\nDua karakter mencoba berbagai produk sehari-hari, lalu memberikan rekomendasi dengan gaya santai dan relatable.\n\nDinamika:\nJangan dibuat seperti presenter TV. Buat seperti dua orang yang sedang ngobrol sambil menemukan produk menarik.\n\nContoh:\nRaka: “Emang sebagus itu?”\nAlya: “Coba dulu.”\nRaka: “Oh... ternyata.”\nAlya: “Nah kan.”"}, {"category": "04 — Content Prompts", "title": "01 — Review Produk", "tags": "review product affiliate", "text": "Raka and Alya are reviewing a [PRODUCT NAME] together.\n\nRaka is holding and testing the product while Alya explains its main benefits to the camera. Both look natural and genuinely interested.\n\nPhotorealistic Indonesian lifestyle content creator photography, authentic expressions, casual indoor setting, product clearly visible, vertical 9:16.\nUse the exact established appearance of Raka and Alya from the master character description.", "indonesian": "Raka dan Alya sedang me-review [NAMA PRODUK] bersama.\n\nRaka memegang dan menguji produk sementara Alya menjelaskan manfaat utamanya kepada kamera. Keduanya terlihat natural dan benar-benar tertarik.\n\nFotografi konten kreator lifestyle Indonesia yang fotorealistik, ekspresi autentik, suasana indoor kasual, produk terlihat jelas, format vertikal 9:16.\nGunakan tampilan Raka dan Alya yang sama persis seperti yang telah ditetapkan pada master character description."}, {"category": "04 — Content Prompts", "title": "02 — Problem → Solution", "tags": "problem solution affiliate", "text": "Raka looks slightly frustrated because he is experiencing [PROBLEM].\n\nAlya introduces [PRODUCT NAME] as a practical solution and shows the product to him.\n\nCreate a natural before-and-after storytelling composition, as if this is a TikTok affiliate video.\n\nRaka and Alya must maintain their established appearance and clothing identity.\nPhotorealistic, Indonesian lifestyle photography, vertical 9:16.", "indonesian": "Raka terlihat sedikit frustrasi karena mengalami [MASALAH].\n\nAlya memperkenalkan [NAMA PRODUK] sebagai solusi praktis dan menunjukkannya kepada Raka.\n\nBuat komposisi storytelling before-and-after yang natural, seolah-olah ini adalah video affiliate TikTok.\n\nRaka dan Alya harus mempertahankan tampilan dan identitas pakaian yang telah ditetapkan.\nFotografi lifestyle Indonesia yang fotorealistik, format vertikal 9:16."}, {"category": "04 — Content Prompts", "title": "03 — Unboxing", "tags": "unboxing product affiliate", "text": "Raka and Alya are sitting together at a table, unboxing [PRODUCT NAME].\n\nThe package is open on the table. Raka looks curious and excited while Alya carefully examines the product.\n\nNatural duo interaction, authentic reactions, realistic hands, realistic Indonesian appearance, commercial lifestyle photography, vertical 9:16.", "indonesian": "Raka dan Alya duduk bersama di meja sambil melakukan unboxing [NAMA PRODUK].\n\nKemasan terbuka di atas meja. Raka terlihat penasaran dan antusias sementara Alya memeriksa produk dengan teliti.\n\nInteraksi duo yang natural, reaksi autentik, tangan realistis, penampilan Indonesia realistis, fotografi lifestyle komersial, format vertikal 9:16."}, {"category": "04 — Content Prompts", "title": "04 — Produk Viral", "tags": "viral product tiktok affiliate", "text": "Raka and Alya are presenting a currently trending [PRODUCT CATEGORY].\n\nRaka holds the product toward the camera while Alya reacts with genuine surprise and excitement.\n\nThe scene should feel like an authentic viral TikTok affiliate video rather than a traditional advertisement.\n\nPhotorealistic, energetic but natural, strong product visibility, vertical 9:16.", "indonesian": "Raka dan Alya sedang memperkenalkan [KATEGORI PRODUK] yang sedang tren.\n\nRaka memegang produk mengarah ke kamera sementara Alya menunjukkan reaksi terkejut dan antusias yang natural.\n\nAdegan harus terasa seperti konten affiliate TikTok yang autentik dan viral, bukan iklan tradisional.\n\nFotorealistik, energik tetapi tetap natural, produk sangat terlihat jelas, format vertikal 9:16."}, {"category": "04 — Content Prompts", "title": "05 — Worth It?", "tags": "worth it review", "text": "Raka is carefully examining [PRODUCT NAME] with a skeptical but curious expression.\n\nAlya explains the product features and points at the important details.\n\nCreate a visual storytelling scene that communicates the question:\n“Is this product actually worth buying?”\n\nNatural expressions, trustworthy review atmosphere, realistic Indonesian lifestyle photography, vertical 9:16.", "indonesian": "Raka sedang memeriksa [NAMA PRODUK] dengan ekspresi skeptis tetapi penasaran.\n\nAlya menjelaskan fitur produk dan menunjuk bagian-bagian penting.\n\nBuat adegan storytelling visual yang menyampaikan pertanyaan:\n“Apakah produk ini benar-benar layak dibeli?”\n\nEkspresi natural, suasana review yang dapat dipercaya, fotografi lifestyle Indonesia realistis, format vertikal 9:16."}, {"category": "04 — Content Prompts", "title": "06 — Lifestyle", "tags": "lifestyle product affiliate", "text": "Raka and Alya are naturally using [PRODUCT NAME] in their everyday life.\n\nThe product should appear naturally integrated into the scene rather than being held directly toward the camera.\n\nWarm Indonesian home environment, candid interaction, realistic lifestyle photography, soft natural light, authentic social-media content aesthetic, vertical 9:16.", "indonesian": "Raka dan Alya sedang menggunakan [NAMA PRODUK] secara natural dalam kehidupan sehari-hari.\n\nProduk harus terlihat menyatu secara alami dengan adegan, bukan sekadar dipegang menghadap kamera.\n\nSuasana rumah Indonesia yang hangat, interaksi candid, fotografi lifestyle realistis, cahaya natural lembut, estetika konten media sosial yang autentik, format vertikal 9:16."}, {"category": "04 — Content Prompts", "title": "07 — Komedi Ringan", "tags": "comedy relatable affiliate", "text": "Raka is using [PRODUCT NAME] incorrectly in a funny but realistic situation.\n\nAlya notices him and gives him a playful confused expression.\n\nCreate a humorous, relatable Indonesian social-media scene.\n\nKeep the characters attractive but natural, with subtle expressions rather than exaggerated cartoon-like reactions.\n\nPhotorealistic, vertical 9:16.", "indonesian": "Raka menggunakan [NAMA PRODUK] dengan cara yang salah dalam situasi yang lucu tetapi tetap realistis.\n\nAlya menyadarinya dan memberikan ekspresi bingung yang playful.\n\nBuat adegan media sosial Indonesia yang humoris dan relatable.\n\nPertahankan karakter tetap menarik tetapi natural, dengan ekspresi halus, bukan reaksi berlebihan seperti kartun.\n\nFotorealistik, format vertikal 9:16."}, {"category": "04 — Content Prompts", "title": "08 — 3 Alasan", "tags": "3 reasons product affiliate", "text": "Raka holds [PRODUCT NAME] while Alya presents three reasons why this product is useful.\n\nCreate a clean social-media affiliate composition with both characters looking toward the camera.\n\nLeave clean negative space at the top and center for adding text overlays:\n“3 ALASAN KENAPA INI WAJIB PUNYA”\n\nPhotorealistic commercial photography, vertical 9:16.", "indonesian": "Raka memegang [NAMA PRODUK] sementara Alya menjelaskan tiga alasan mengapa produk ini berguna.\n\nBuat komposisi affiliate media sosial yang bersih dengan keduanya menghadap kamera.\n\nSisakan ruang kosong yang bersih di bagian atas dan tengah untuk teks:\n“3 ALASAN KENAPA INI WAJIB PUNYA”\n\nFotografi komersial fotorealistik, format vertikal 9:16."}, {"category": "04 — Content Prompts", "title": "09 — Testimoni", "tags": "testimonial product affiliate", "text": "Raka has just finished using [PRODUCT NAME] and looks satisfied.\n\nAlya asks him about his experience while holding the product.\n\nThe scene should look like an authentic customer testimonial rather than a staged advertisement.\n\nNatural Indonesian appearance, genuine expressions, realistic environment, photorealistic lifestyle photography, vertical 9:16.", "indonesian": "Raka baru selesai menggunakan [NAMA PRODUK] dan terlihat puas.\n\nAlya menanyakan pengalamannya sambil memegang produk.\n\nAdegan harus terlihat seperti testimoni pelanggan yang autentik, bukan iklan yang terlalu dibuat-buat.\n\nPenampilan Indonesia natural, ekspresi tulus, lingkungan realistis, fotografi lifestyle fotorealistik, format vertikal 9:16."}, {"category": "04 — Content Prompts", "title": "10 — CTA / Closing", "tags": "cta affiliate", "text": "Raka and Alya stand side by side facing the camera.\n\nRaka holds [PRODUCT NAME] while Alya gestures naturally toward the lower part of the frame as if directing viewers to the product link.\n\nBoth have friendly confident smiles.\n\nLeave clear negative space at the bottom for a call-to-action text overlay.\n\nPhotorealistic Indonesian social-media commercial photography, clean composition, vertical 9:16.", "indonesian": "Raka dan Alya berdiri berdampingan menghadap kamera.\n\nRaka memegang [NAMA PRODUK] sementara Alya memberi gestur natural ke bagian bawah frame seolah mengarahkan penonton ke link produk.\n\nKeduanya tersenyum ramah dan percaya diri.\n\nSisakan ruang kosong yang jelas di bagian bawah untuk teks call-to-action.\n\nFotografi komersial media sosial Indonesia yang fotorealistik, komposisi bersih, format vertikal 9:16."}, {"category": "05 — Thumbnail", "title": "Thumbnail Master", "tags": "thumbnail cover tiktok instagram", "text": "Create a photorealistic vertical 9:16 social media thumbnail featuring the recurring Indonesian affiliate duo Raka and Alya.\n\nRaka stands on the left wearing his signature black polo shirt with subtle gray collar details.\n\nAlya stands on the right wearing her signature black outfit and patterned black, white and gray hijab.\n\nBoth look directly toward the camera with expressive but natural facial expressions.\n\nRaka holds [PRODUCT].\nAlya points toward the product with a curious and excited expression.\n\nThe product is large, clearly visible and visually important.\n\nClean modern background, warm realistic lighting, commercial lifestyle photography, realistic Indonesian appearance, sharp details, natural skin texture.\n\nLeave large clean negative space at the top for headline text.\n\nThe characters must maintain exactly the same visual identity as the established Raka and Alya characters.\n\nVertical 9:16.", "indonesian": "Buat thumbnail media sosial fotorealistik vertikal 9:16 yang menampilkan duo affiliate Indonesia Raka dan Alya.\n\nRaka berdiri di sebelah kiri mengenakan polo shirt hitam khasnya dengan detail kerah abu-abu.\n\nAlya berdiri di sebelah kanan mengenakan outfit hitam khasnya dan hijab bermotif hitam, putih, dan abu-abu.\n\nKeduanya melihat langsung ke kamera dengan ekspresi yang ekspresif tetapi natural.\n\nRaka memegang [PRODUK].\nAlya menunjuk ke arah produk dengan ekspresi penasaran dan antusias.\n\nProduk berukuran besar, terlihat jelas, dan menjadi elemen visual utama.\n\nBackground modern yang bersih, pencahayaan realistis yang hangat, fotografi lifestyle komersial, penampilan Indonesia realistis, detail tajam, tekstur kulit natural.\n\nSisakan ruang kosong yang luas di bagian atas untuk headline.\n\nKarakter harus mempertahankan identitas visual Raka dan Alya yang telah ditetapkan.\n\nFormat vertikal 9:16."}, {"category": "06 — Video", "title": "Video Launching Akun", "tags": "video launching tiktok reels", "text": "Create a realistic vertical 9:16 social-media video featuring two recurring Indonesian affiliate characters, Raka and Alya.\n\nScene 1:\nRaka looks at the camera and says with a curious expression:\n“Gue sering lihat barang ini lewat.”\n\nScene 2:\nAlya enters the frame holding the product and says:\n“Daripada penasaran, kita coba.”\n\nScene 3:\nRaka takes the product and examines it skeptically.\n\nScene 4:\nThey test the product together.\n\nScene 5:\nRaka looks surprised and says:\n“Eh... ternyata kepakai.”\n\nScene 6:\nAlya smiles and says:\n“Nah, makanya jangan cuma lihat review. Coba lihat sendiri.”\n\nNatural conversational acting, authentic Indonesian social-media creator style, realistic facial expressions, realistic hand movements, natural body language, photorealistic commercial lifestyle video, warm lighting.\n\nKeep Raka and Alya's appearance completely consistent throughout the entire video.\n\nNo exaggerated acting, no cartoon style, no artificial-looking faces.\n\nVertical 9:16, optimized for TikTok and Instagram Reels.", "indonesian": "Buat video media sosial realistis vertikal 9:16 yang menampilkan dua karakter affiliate Indonesia yang terus muncul, Raka dan Alya.\n\nAdegan 1:\nRaka melihat kamera dan berkata dengan ekspresi penasaran:\n“Gue sering lihat barang ini lewat.”\n\nAdegan 2:\nAlya masuk ke frame sambil memegang produk dan berkata:\n“Daripada penasaran, kita coba.”\n\nAdegan 3:\nRaka mengambil produk dan memeriksanya dengan skeptis.\n\nAdegan 4:\nMereka mencoba produk bersama.\n\nAdegan 5:\nRaka terlihat terkejut dan berkata:\n“Eh... ternyata kepakai.”\n\nAdegan 6:\nAlya tersenyum dan berkata:\n“Nah, makanya jangan cuma lihat review. Coba lihat sendiri.”\n\nAkting percakapan natural, gaya kreator media sosial Indonesia yang autentik, ekspresi wajah realistis, gerakan tangan realistis, bahasa tubuh natural, video lifestyle komersial fotorealistik, pencahayaan hangat.\n\nPertahankan tampilan Raka dan Alya sepenuhnya konsisten sepanjang video.\n\nJangan gunakan akting berlebihan, gaya kartun, atau wajah yang terlihat artifisial.\n\nFormat vertikal 9:16, dioptimalkan untuk TikTok dan Instagram Reels."}, {"category": "07 — Content System", "title": "Formula Video Affiliate", "tags": "formula hook problem demo reaction cta", "text": "Format video utama:\nDurasi target: 20–40 detik.\n\nSTRUKTUR:\n0–3 detik — HOOK\n3–8 detik — MASALAH\n8–20 detik — DEMO\n20–30 detik — REAKSI\n30–40 detik — CTA\n\nFormula:\nHOOK → MASALAH → PRODUK → DEMO → REAKSI → CTA\n\nTemplate:\nProduk: [nama produk]\nMasalah: [masalah konsumen]\nHook: “Gue kira...”\nDemo: Raka mencoba\nDetail: Alya menjelaskan\nReaksi: Raka memberikan reaksi\nKesimpulan: “Ternyata...”\nCTA: “Kalau mau lihat produknya, cek di bawah.”", "indonesian": "Format video utama:\nTarget durasi: 20–40 detik.\n\nSTRUKTUR:\n0–3 detik — HOOK\n3–8 detik — MASALAH\n8–20 detik — DEMO\n20–30 detik — REAKSI\n30–40 detik — CTA\n\nFormula:\nHOOK → MASALAH → PRODUK → DEMO → REAKSI → CTA\n\nTemplate:\nProduk: [nama produk]\nMasalah: [masalah konsumen]\nHook: “Gue kira...”\nDemo: Raka mencoba\nDetail: Alya menjelaskan\nReaksi: Raka memberikan reaksi\nKesimpulan: “Ternyata...”\nCTA: “Kalau mau lihat produknya, cek di bawah.”"}, {"category": "07 — Content System", "title": "10 Hook Raka & Alya", "tags": "hook viral tiktok affiliate", "text": "1. “Gue kira ini cuma gimmick...”\n2. “Kenapa baru sekarang kita nemu barang ini?”\n3. “Alya bilang ini wajib dicoba. Jadi kita coba.”\n4. “Barang murah, tapi ternyata kepakai banget.”\n5. “Kalau punya masalah ini, coba lihat dulu.”\n6. “Awalnya gue nggak yakin...”\n7. “Kita beli karena penasaran. Ternyata...”\n8. “Ini salah satu barang random yang ternyata berguna.”\n9. “Jangan beli dulu sebelum lihat ini.”\n10. “Oke, kita tes apakah ini beneran sebagus itu.”", "indonesian": "1. “Gue kira ini cuma gimmick...”\n2. “Kenapa baru sekarang kita nemu barang ini?”\n3. “Alya bilang ini wajib dicoba. Jadi kita coba.”\n4. “Barang murah, tapi ternyata kepakai banget.”\n5. “Kalau punya masalah ini, coba lihat dulu.”\n6. “Awalnya gue nggak yakin...”\n7. “Kita beli karena penasaran. Ternyata...”\n8. “Ini salah satu barang random yang ternyata berguna.”\n9. “Jangan beli dulu sebelum lihat ini.”\n10. “Oke, kita tes apakah ini beneran sebagus itu.”"}, {"category": "07 — Content System", "title": "Signature Ending", "tags": "signature ending branding", "text": "Signature ending untuk semua video:\n\nRaka:\n“Coba dulu...”\n\nAlya:\n“...baru rekomendasi.”\n\nLalu keduanya melihat kamera.\n\nLogo:\nRAKA × ALYA\n\nGunakan ending yang konsisten agar menjadi identitas visual dan verbal akun.", "indonesian": "Signature ending untuk semua video:\n\nRaka:\n“Coba dulu...”\n\nAlya:\n“...baru rekomendasi.”\n\nLalu keduanya melihat kamera.\n\nLogo:\nRAKA × ALYA\n\nGunakan ending yang konsisten agar menjadi identitas visual dan verbal akun."}, {"category": "08 — Profile", "title": "Bio TikTok / Instagram — Versi 1", "tags": "bio profile instagram tiktok", "text": "👨🏻‍🦱 Raka × 👩🏻‍🦱 Alya\n🛍️ Nyoba barang random biar kamu nggak salah beli\n🔎 Coba dulu, baru rekomendasi\n👇 Produk yang lagi kita coba", "indonesian": "👨🏻‍🦱 Raka × 👩🏻‍🦱 Alya\n🛍️ Nyoba barang random biar kamu nggak salah beli\n🔎 Coba dulu, baru rekomendasi\n👇 Produk yang lagi kita coba"}, {"category": "08 — Profile", "title": "Bio TikTok / Instagram — Versi 2", "tags": "bio profile instagram tiktok", "text": "Kita cobain dulu,\nkamu tinggal pilih 😎\n🛍️ Review barang yang kepakai\n👨🏻 Raka × 👩🏻 Alya\n👇 Cek rekomendasi kita", "indonesian": "Kita cobain dulu,\nkamu tinggal pilih 😎\n🛍️ Review barang yang kepakai\n👨🏻 Raka × 👩🏻 Alya\n👇 Cek rekomendasi kita"}, {"category": "08 — Profile", "title": "Bio TikTok / Instagram — Versi 3", "tags": "bio profile instagram tiktok", "text": "🛍️ Produk menarik yang kita temuin\n🔎 Kita coba → kita pakai → kita ceritain\n👨🏻 Raka × 👩🏻 Alya\n👇 Lihat produknya", "indonesian": "🛍️ Produk menarik yang kita temuin\n🔎 Kita coba → kita pakai → kita ceritain\n👨🏻 Raka × 👩🏻 Alya\n👇 Lihat produknya"}, {"category": "09 — Content Ideas", "title": "30 Ide Konten Pertama", "tags": "content ideas 30 days", "text": "MINGGU 1 — PERKENALAN\n1. Siapa Raka & Alya?\n2. “Kita bakal nyobain barang random.”\n3. Produk pertama yang mereka review\n4. Raka pilih produk vs Alya pilih produk\n5. Produk murah yang ternyata berguna\n\nMINGGU 2 — PROBLEM SOLVING\n6. Barang untuk meja kerja\n7. Barang untuk kamar\n8. Barang untuk dapur\n9. Barang untuk bepergian\n10. Barang untuk orang yang sering lupa\n\nMINGGU 3 — KONTEN RELATABLE\n11. “Barang yang awalnya dianggap nggak perlu”\n12. “Barang yang ternyata bikin hidup lebih gampang”\n13. Raka mencoba produk viral\n14. Alya memilih produk untuk Raka\n15. Raka memilih produk untuk Alya\n\nMINGGU 4 — REVIEW\n16. Worth it atau tidak?\n17. Kelebihan & kekurangan\n18. Cara menggunakan produk\n19. Produk vs produk alternatif\n20. 3 alasan produk ini menarik\n\nMINGGU 5\n21. Produk di bawah Rp50 ribu\n22. Produk untuk anak kos\n23. Produk untuk kantor\n24. Produk untuk pasangan\n25. Produk yang cocok dijadikan hadiah\n\nMINGGU 6\n26. “Beli atau skip?”\n27. “Kita kasih nilai setelah 7 hari”\n28. Produk yang paling sering dipakai\n29. 3 produk favorit minggu ini\n30. Kompilasi “produk yang ternyata worth dicoba”", "indonesian": "MINGGU 1 — PERKENALAN\n1. Siapa Raka & Alya?\n2. “Kita bakal nyobain barang random.”\n3. Produk pertama yang mereka review\n4. Raka pilih produk vs Alya pilih produk\n5. Produk murah yang ternyata berguna\n\nMINGGU 2 — PROBLEM SOLVING\n6. Barang untuk meja kerja\n7. Barang untuk kamar\n8. Barang untuk dapur\n9. Barang untuk bepergian\n10. Barang untuk orang yang sering lupa\n\nMINGGU 3 — KONTEN RELATABLE\n11. “Barang yang awalnya dianggap nggak perlu”\n12. “Barang yang ternyata bikin hidup lebih gampang”\n13. Raka mencoba produk viral\n14. Alya memilih produk untuk Raka\n15. Raka memilih produk untuk Alya\n\nMINGGU 4 — REVIEW\n16. Worth it atau tidak?\n17. Kelebihan & kekurangan\n18. Cara menggunakan produk\n19. Produk vs produk alternatif\n20. 3 alasan produk ini menarik\n\nMINGGU 5\n21. Produk di bawah Rp50 ribu\n22. Produk untuk anak kos\n23. Produk untuk kantor\n24. Produk untuk pasangan\n25. Produk yang cocok dijadikan hadiah\n\nMINGGU 6\n26. “Beli atau skip?”\n27. “Kita kasih nilai setelah 7 hari”\n28. Produk yang paling sering dipakai\n29. 3 produk favorit minggu ini\n30. Kompilasi “produk yang ternyata worth dicoba”"}, {"category": "10 — Branding", "title": "Logo Concept", "tags": "logo branding visual identity", "text": "Logo concept:\n\nRAKA × ALYA\n\nAlternatif simbol:\nR × A\nR+A\n\nStyle:\nMinimalis, hitam-putih, mudah digunakan sebagai profile picture, watermark, thumbnail, packaging, dan merchandise.\n\nJangan membuat logo terlalu kompleks.", "indonesian": "Konsep logo:\n\nRAKA × ALYA\n\nAlternatif simbol:\nR × A\nR+A\n\nGaya:\nMinimalis, hitam-putih, mudah digunakan sebagai foto profil, watermark, thumbnail, packaging, dan merchandise.\n\nJangan membuat logo terlalu kompleks."}, {"category": "10 — Branding", "title": "Visual Identity", "tags": "colors outfit branding", "text": "Visual identity:\nClean + warm + realistic.\n\nWarna:\n- Hitam — identitas utama\n- Putih — background\n- Abu-abu — elemen pendukung\n- Beige/warm cream — kesan hangat\n\nOutfit signature:\nRaka: black polo + gray collar\nAlya: black outfit + patterned black/white/gray hijab\n\nTujuan:\nWajah Raka & Alya tetap menjadi pusat perhatian dan mudah dikenali dari thumbnail ke thumbnail.", "indonesian": "Identitas visual:\nClean + warm + realistic.\n\nWarna:\n- Hitam — identitas utama\n- Putih — background\n- Abu-abu — elemen pendukung\n- Beige/warm cream — memberikan kesan hangat\n\nOutfit signature:\nRaka: black polo + gray collar\nAlya: black outfit + patterned black/white/gray hijab\n\nTujuan:\nWajah Raka & Alya tetap menjadi pusat perhatian dan mudah dikenali dari thumbnail ke thumbnail."}];
+let prompts = base;
+try { prompts = JSON.parse(localStorage.getItem('rakaAlyaPromptsBilingual') || 'null') || base; } catch(e) { prompts = base; }
+
+let editIndex = null;
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function saveLocal(){
+ try { localStorage.setItem('rakaAlyaPromptsBilingual',JSON.stringify(prompts)); return true; }
+ catch(e) { showCopyResult && showCopyResult('Penyimpanan browser tidak tersedia.',false); return false; }
+}
+function categories(){return [...new Set(prompts.map(p=>p.category))].sort();}
+function renderCategories(){
+ const sel=document.getElementById('category'); const old=sel.value;
+ sel.innerHTML='<option value="">Semua kategori</option>'+categories().map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+ sel.value=old;
+}
+function render(){
+ renderCategories();
+ const q=document.getElementById('search').value.toLowerCase().trim();
+ const cat=document.getElementById('category').value;
+ const list=prompts.map((p,i)=>({p,i})).filter(x=>(!cat||x.p.category===cat)&&(!q||(x.p.title+' '+x.p.category+' '+(x.p.tags||'')+' '+x.p.text+' '+(x.p.indonesian||'')).toLowerCase().includes(q)));
+ document.getElementById('stats').textContent=`${list.length} prompt tampil • ${prompts.length} total`;
+ document.getElementById('grid').innerHTML=list.length?list.map(x=>card(x.p,x.i)).join(''):'<div class="empty">Tidak ada prompt yang cocok.</div>';
+}
+function card(p,i){
+ return `<article class="card">
+ <div class="category">${esc(p.category)}</div>
+ <h2>${esc(p.title)}</h2>
+ <div class="tags">${p.tags?esc(p.tags):''}</div>
+ <div class="cols">
+  <section class="lang">
+   <div class="langhead"><span>🇬🇧 English</span><button onclick="copyField(${i},'en')">Copy</button></div>
+   <pre>${esc(p.text)}</pre>
+  </section>
+  <section class="lang">
+   <div class="langhead"><span>🇮🇩 Bahasa Indonesia</span><button onclick="copyField(${i},'id')">Copy</button></div>
+   <pre>${esc(p.indonesian || '')}</pre>
+  </section>
+ </div>
+ <div class="card-actions">
+  <button onclick="copyBoth(${i})">📋 Copy Keduanya</button>
+  <button class="secondary" onclick="editPrompt(${i})">Edit</button>
+  <button class="secondary" onclick="deletePrompt(${i})">Hapus</button>
+ </div>
+ </article>`;
+}
+async function copyText(text){
+ if(!text) return false;
+ try{
+  if(navigator.clipboard && window.isSecureContext){
+   await navigator.clipboard.writeText(text);
+   return true;
+  }
+ }catch(e){}
+ try{
+  const ta=document.createElement('textarea');
+  ta.value=text; ta.setAttribute('readonly','');
+  ta.style.position='fixed'; ta.style.left='-9999px'; ta.style.top='0';
+  document.body.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0,ta.value.length);
+  const ok=document.execCommand('copy'); document.body.removeChild(ta); return ok;
+ }catch(e){ return false; }
+}
+function showCopyResult(message,success=true){
+ let el=document.getElementById('copyToast');
+ if(!el){
+  el=document.createElement('div'); el.id='copyToast';
+  el.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(10px);background:#111;color:#fff;padding:11px 16px;border-radius:12px;font-size:13px;z-index:9999;opacity:0;transition:.2s;box-shadow:0 6px 20px rgba(0,0,0,.2);max-width:90vw;text-align:center;';
+  document.body.appendChild(el);
+ }
+ el.textContent=message; el.style.background=success?'#111':'#b42318'; el.style.opacity='1'; el.style.transform='translateX(-50%) translateY(0)';
+ clearTimeout(el._timer); el._timer=setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(-50%) translateY(10px)';},1800);
+}
+async function copyField(i,lang){
+ const text=lang==='en'?prompts[i].text:(prompts[i].indonesian||'');
+ const ok=await copyText(text);
+ showCopyResult(ok?(lang==='en'?'Prompt English berhasil dicopy.':'Prompt Indonesia berhasil dicopy.'):'Copy otomatis gagal. Silakan blok teks lalu tekan Ctrl/Cmd+C.',ok);
+}
+async function copyBoth(i){
+ const p=prompts[i];
+ const text='ENGLISH\n\n'+p.text+'\n\nBAHASA INDONESIA\n\n'+(p.indonesian||'');
+ const ok=await copyText(text);
+ showCopyResult(ok?'Prompt English + Indonesia berhasil dicopy.':'Copy otomatis gagal. Silakan blok teks lalu tekan Ctrl/Cmd+C.',ok);
+}
+function openAdd(){
+ editIndex=null; document.getElementById('modalTitle').textContent='Tambah Prompt';
+ ['pTitle','pCategory','pTags','pText','pIndo'].forEach(id=>document.getElementById(id).value='');
+ document.getElementById('modal').classList.add('open');
+}
+function editPrompt(i){
+ editIndex=i; const p=prompts[i];
+ document.getElementById('modalTitle').textContent='Edit Prompt';
+ document.getElementById('pTitle').value=p.title; document.getElementById('pCategory').value=p.category;
+ document.getElementById('pTags').value=p.tags||''; document.getElementById('pText').value=p.text;
+ document.getElementById('pIndo').value=p.indonesian||'';
+ document.getElementById('modal').classList.add('open');
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');}
+function savePrompt(){
+ const p={title:document.getElementById('pTitle').value.trim(),category:document.getElementById('pCategory').value.trim()||'99 — Custom',tags:document.getElementById('pTags').value.trim(),text:document.getElementById('pText').value.trim(),indonesian:document.getElementById('pIndo').value.trim()};
+ if(!p.title||!p.text){alert('Judul dan prompt bahasa Inggris wajib diisi.');return;}
+ if(editIndex===null) prompts.push(p); else prompts[editIndex]=p;
+ saveLocal(); closeModal(); render();
+}
+function deletePrompt(i){
+ if(confirm('Hapus prompt ini?')){prompts.splice(i,1);saveLocal();render();}
+}
+function exportData(){
+ const blob=new Blob([JSON.stringify(prompts,null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='raka-alya-prompt-library-bilingual-backup.json';a.click();URL.revokeObjectURL(a.href);
+}
+function importData(){
+ const input=document.createElement('input');input.type='file';input.accept='.json,application/json';
+ input.onchange=()=>{const f=input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d))throw 0;prompts=d;saveLocal();render();alert('Backup berhasil dipulihkan.')}catch(e){alert('File backup tidak valid.')}};r.readAsText(f)};
+ input.click();
+}
+document.getElementById('search').addEventListener('input',render);
+document.getElementById('category').addEventListener('change',render);
+
+// PWA: register service worker and expose an install button when supported.
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const b=document.getElementById('installBtn');
+  if(b) b.style.display='inline-block';
+});
+async function installApp(){
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  try { await deferredInstallPrompt.userChoice; } catch(e) {}
+  deferredInstallPrompt=null;
+  const b=document.getElementById('installBtn');
+  if(b) b.style.display='none';
+}
+window.addEventListener('appinstalled',()=>{
+  const b=document.getElementById('installBtn');
+  if(b) b.style.display='none';
+});
+if('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+}
+
+render();
+if(location.protocol==='file:' || location.protocol==='content:') document.getElementById('fileNote').style.display='block';
+</script>
+</body>
+</html>
