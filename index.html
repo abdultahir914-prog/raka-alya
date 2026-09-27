@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Raka × Alya">
+<meta name="apple-mobile-web-app-title" content="AI Affiliate Character Generator">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="./icon-192.png">
@@ -57,7 +57,7 @@ textarea{width:100%;min-height:220px;resize:vertical}
 <body>
 <header>
 <div class="wrap">
-<h1>RAKA × ALYA — Bilingual Prompt Library</h1>
+<h1>AI Affiliate Character Generator</h1>
 <div class="sub">Prompt English + terjemahan Indonesia berdampingan • copy sekali klik • bisa tambah prompt baru</div>
 <div class="toolbar">
 <input id="search" placeholder="Cari prompt, kategori, atau kata kunci…">
@@ -159,15 +159,16 @@ function saveLocal(){
 function categories(){return [...new Set(prompts.map(p=>p.category))].sort();}
 
 /* ---------- CUSTOM CHARACTER TEMPLATES ---------- */
+function effSolo(c){ return !c || !c.name2 || !String(c.name2).trim(); }
 function nameSwap(text,c){
   if(!text || !c) return text;
   let out = text;
   if(c.name1) out = out.replace(/\bRaka\b/g, c.name1);
-  if(!c.solo && c.name2) out = out.replace(/\bAlya\b/g, c.name2);
+  if(!effSolo(c) && c.name2) out = out.replace(/\bAlya\b/g, c.name2);
   return out;
 }
 function buildMasterPrompt(c, lang){
-  const solo = !!c.solo;
+  const solo = effSolo(c);
   const n1 = c.name1||"Karakter 1";
   const n2 = c.name2||"Karakter 2";
   if(lang==='en'){
@@ -221,13 +222,14 @@ function buildProfile(c, which, lang){
   }
 }
 function buildBrand(c, lang){
+  const solo = effSolo(c);
   const n1=c.name1||'Karakter 1', n2=c.name2||'Karakter 2';
-  const brand = c.brandName || (c.solo? n1 : (n1+' & '+n2));
+  const brand = c.brandName || (solo? n1 : (n1+' & '+n2));
   const tagline = c.tagline || (lang==='en' ? '"Try it first, then recommend."' : '"Coba Dulu, Baru Rekomendasi."');
   if(lang==='en'){
-    return `Brand name: ${brand}\n\nMain tagline:\n${tagline}\n\nPositioning:\n${c.solo? n1 : (n1+' and '+n2)} help people discover products that are genuinely useful for everyday life.\n\nConcept:\n${c.solo? 'One creator':'Two characters'} trying various everyday products, then giving recommendations in a casual, relatable style.`;
+    return `Brand name: ${brand}\n\nMain tagline:\n${tagline}\n\nPositioning:\n${solo? n1 : (n1+' and '+n2)} help people discover products that are genuinely useful for everyday life.\n\nConcept:\n${solo? 'One creator':'Two characters'} trying various everyday products, then giving recommendations in a casual, relatable style.`;
   } else {
-    return `Nama brand: ${brand}\n\nTagline utama:\n${tagline}\n\nPositioning:\n${c.solo? n1 : (n1+' dan '+n2)} membantu orang menemukan produk yang benar-benar berguna untuk kehidupan sehari-hari.\n\nKonsep:\n${c.solo? 'Satu kreator':'Dua karakter'} mencoba berbagai produk sehari-hari, lalu memberikan rekomendasi dengan gaya santai dan relatable.`;
+    return `Nama brand: ${brand}\n\nTagline utama:\n${tagline}\n\nPositioning:\n${solo? n1 : (n1+' dan '+n2)} membantu orang menemukan produk yang benar-benar berguna untuk kehidupan sehari-hari.\n\nKonsep:\n${solo? 'Satu kreator':'Dua karakter'} mencoba berbagai produk sehari-hari, lalu memberikan rekomendasi dengan gaya santai dan relatable.`;
   }
 }
 
@@ -249,7 +251,7 @@ function getDisplay(p, i){
     } else if(kind === 'profile1'){
       text = buildProfile(customChar,1,'en'); indonesian = buildProfile(customChar,1,'id');
     } else if(kind === 'profile2'){
-      if(customChar.solo){ text = ''; indonesian = ''; }
+      if(effSolo(customChar)){ text = ''; indonesian = ''; }
       else { text = buildProfile(customChar,2,'en'); indonesian = buildProfile(customChar,2,'id'); }
     } else if(kind === 'brand'){
       text = buildBrand(customChar,'en'); indonesian = buildBrand(customChar,'id');
@@ -261,6 +263,20 @@ function getDisplay(p, i){
   const result = {text, indonesian};
   displayCache[i] = result;
   return result;
+}
+
+function getDisplayTitle(p){
+  if(!customChar) return p.title;
+  const key = p.category+'|'+p.title;
+  const kind = TEMPLATE_KEYS[key];
+  if(!kind) return p.title;
+  const solo = effSolo(customChar);
+  const n1 = customChar.name1||'Karakter 1', n2 = customChar.name2||'Karakter 2';
+  if(kind==='master') return `Master Prompt — ${solo? n1 : n1+' & '+n2}`;
+  if(kind==='profile1') return `${n1} — Character Profile`;
+  if(kind==='profile2') return `${n2} — Character Profile`;
+  if(kind==='brand') return `Brand Identity — ${customChar.brandName || (solo? n1 : (n1+' × '+n2))}`;
+  return p.title;
 }
 
 /* ---------- PLACEHOLDER GENERATE ---------- */
@@ -298,14 +314,14 @@ function render(){
 }
 function card(p,i){
   const d = getDisplay(p,i);
-  if(customChar && customChar.solo && p.title==='Alya — Character Profile' && p.category==='02 — Character Identity'){
+  if(customChar && effSolo(customChar) && p.title==='Alya — Character Profile' && p.category==='02 — Character Identity'){
     return '';
   }
   const tokEN = extractTokens(d.text), tokID = extractTokens(d.indonesian);
   const phInputs = buildPlaceholderInputs(i, tokEN, tokID);
   return `<article class="card" data-i="${i}">
  <div class="category">${esc(p.category)}</div>
- <h2>${esc(p.title)}</h2>
+ <h2>${esc(getDisplayTitle(p))}</h2>
  <div class="tags">${p.tags?esc(p.tags):''}</div>
  <div class="cols">
   <section class="lang">
